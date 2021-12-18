@@ -1,8 +1,16 @@
 package com.pb.potapenko.hw11;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 
-import java.sql.Date;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -41,11 +49,11 @@ public class PhoneBook {
         String[] contact2Phones = {"+380508187856"};
         String[] contact3Phones = {"+380508187804","+380508187839"};
 
-        Contact contact1 = new Contact("Яна",Date.valueOf("1993-02-02"),
+        Contact contact1 = new Contact("Яна", LocalDate.parse("1993-02-02"),
                 contact1Phones,"Полтава",LocalDateTime.now());
-        Contact contact2 = new Contact("Варвара",Date.valueOf("2017-11-09"),
+        Contact contact2 = new Contact("Варвара",LocalDate.parse("2017-11-09"),
                 contact2Phones,"Днепр",LocalDateTime.now());
-        Contact contact3 = new Contact("Антон",Date.valueOf("1981-04-21"),
+        Contact contact3 = new Contact("Антон",LocalDate.parse("1981-04-21"),
                 contact3Phones,"Симферополь", LocalDateTime.now());
 
         tHashMap.put("contact1",contact1);
@@ -70,8 +78,12 @@ public class PhoneBook {
      * @param tHashMap ссылка на телефонную книгу в формате HashMap
      */
     private static void contactDeleteAll(HashMap tHashMap) {
+        ArrayList<String> deleteContactKeys = new ArrayList<>();
         for(Object key : tHashMap.keySet()) {
-            tHashMap.remove(key);
+            deleteContactKeys.add((String) key);
+        }
+        for(String delKey : deleteContactKeys) {
+            tHashMap.remove(delKey);
         }
         System.out.println("Телефонная книга полностью очищена.");
     }
@@ -242,7 +254,7 @@ public class PhoneBook {
      * @param contactName имя контакта
      * @param newBDay новая дата рождения
      */
-    private static void contactEditBday(HashMap tHashMap, String contactName, Date newBDay) {
+    private static void contactEditBday(HashMap tHashMap, String contactName, LocalDate newBDay) {
         int isHasName = 0;
         for(Object key : tHashMap.keySet()) {
             Contact commonContact = (Contact) tHashMap.get(key);
@@ -269,13 +281,68 @@ public class PhoneBook {
         }
     }
 
-    private static void contactSaveToFile() {
+    /**
+     * Метод генерирует json объект, сохраняет туда данные телефонной книги и записывает в файл на диске
+     * @param tHashMap ссылка на телефонную книгу в формате HashMap
+     * @param pathName путь к каталогу, где будет лежать файл с данными телефонной книги
+     * @param fileName имя файла с данными телефонной книги
+     * @throws Exception
+     */
+    private static void contactSaveToFile(HashMap tHashMap, String pathName, String fileName) throws Exception{
         ObjectMapper contactObjectMapper = new ObjectMapper();
+        contactObjectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(LocalDate.class, new LocalDateSerializer());
+        module.addDeserializer(LocalDate.class, new LocalDateDeserializer());
+        module.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer());
+        module.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer());
+        contactObjectMapper.registerModule(module);
+
+        String contactJson = "";
+        for(Object key : tHashMap.keySet()) {
+            contactJson = contactObjectMapper.writeValueAsString(tHashMap);
+        }
+        //System.out.println(contactJson);
+        try (BufferedWriter myWriter = Files.newBufferedWriter(Paths.get(pathName + fileName))) {
+            myWriter.write(contactJson);
+            myWriter.flush();
+            System.out.println("Данные телефонной книги успешно записаны в файл "+pathName+fileName);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Error with file write: " + e);
+        }
     }
 
-    public static void main(String[] args) {
+    private static void contactReadFromFile(String pathName, String fileName, HashMap restoreContacts) {
+        ObjectMapper contactObjectMapper = new ObjectMapper();
+        contactObjectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(LocalDate.class, new LocalDateSerializer());
+        module.addDeserializer(LocalDate.class, new LocalDateDeserializer());
+        module.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer());
+        module.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer());
+        contactObjectMapper.registerModule(module);
+
+        String contactJson = "";
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(pathName + fileName))) {
+            String line;
+            while((line = reader.readLine()) != null) {
+                contactJson += line+'\n';
+            }
+        }
+        catch (Exception e) {
+            System.out.println("Ошибка чтения файла: " + e);
+        }
+        System.out.println(contactJson);
+    }
+
+    public static void main(String[] args) throws Exception {
         int intCustomerChoice = -1;
-        HashMap<String,Contact> myContacts = new HashMap<>();
+        String jsonPath = "/home/varvara/IdeaProjects/JavaHomeWork/src/com/pb/potapenko/hw11/"; // каталог
+        String jsonFileName = "PhoneBook.json"; // имя файла
+        HashMap<String,Contact> myContacts = new HashMap<>(); // Коллекция с данными телефонной книги
+        HashMap<String,Contact> myRestoreContacts = new HashMap<>(); // Коллекция с востановленными из файла данными телефонной книги
 
         System.out.println("Привет. Я Телефонная книга.");
         mainMenu();
@@ -314,12 +381,13 @@ public class PhoneBook {
                         contactEditName(myContacts,"Антон","Платон");
                         break;
                     case(52): System.out.println("Редактирую дату рождения контакта");
-                        contactEditBday(myContacts,"Варвара",Date.valueOf("2017-12-31"));
+                        contactEditBday(myContacts,"Варвара",LocalDate.parse("2017-12-31"));
                         break;
-                    case(6): System.out.println("Сохраняю телефонную книгу в файл");
-                        contactSaveToFile();
+                    case(6): System.out.println("Сохраняю телефонную книгу в файл json");
+                        contactSaveToFile(myContacts,jsonPath,jsonFileName);
                         break;
                     case(7): System.out.println("В книгу загружены контакты из файла");
+                        contactReadFromFile(jsonPath,jsonFileName,myRestoreContacts);
                         break;
                     case(-1): break;
                     default: System.out.println("Вы ввели несуществующий пункт меню: "+intCustomerChoice);

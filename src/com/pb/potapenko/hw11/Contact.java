@@ -1,18 +1,18 @@
 package com.pb.potapenko.hw11;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Contact{
     private static int countContacts = 0;
 
     private String contactFIO;
-    private Date contactBDAY;
+    private LocalDate contactBDAY;
     private String[] contactPHONES;
     private String contactADRESS;
     private LocalDateTime contactMODIFYDT;
 
-    public Contact(String contactFIO, Date contactBDAY, String[] contactPHONES, String contactADRESS, LocalDateTime contactMODIFYDT){
+    public Contact(String contactFIO, LocalDate contactBDAY, String[] contactPHONES, String contactADRESS, LocalDateTime contactMODIFYDT){
         this.contactFIO = contactFIO;
         this.contactBDAY = contactBDAY;
         this.contactPHONES = contactPHONES;
@@ -25,7 +25,7 @@ public class Contact{
         return contactFIO;
     }
 
-    public Date getContactBDAY() {
+    public LocalDate getContactBDAY() {
         return contactBDAY;
     }
 
@@ -45,7 +45,7 @@ public class Contact{
         this.contactFIO = contactFIO;
     }
 
-    public void setContactBDAY(Date contactBDAY) {
+    public void setContactBDAY(LocalDate contactBDAY) {
         this.contactBDAY = contactBDAY;
     }
 

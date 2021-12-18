@@ -1,0 +1,23 @@
+{
+  "contact1" : {
+    "contactFIO" : "Яна",
+    "contactBDAY" : "1993-02-02",
+    "contactPHONES" : [ "+380662577094" ],
+    "contactADRESS" : "Полтава",
+    "contactMODIFYDT" : "2021-12-19T01:56:46.206"
+  },
+  "contact3" : {
+    "contactFIO" : "Антон",
+    "contactBDAY" : "1981-04-21",
+    "contactPHONES" : [ "+380508187804", "+380508187839" ],
+    "contactADRESS" : "Симферополь",
+    "contactMODIFYDT" : "2021-12-19T01:56:46.212"
+  },
+  "contact2" : {
+    "contactFIO" : "Варвара",
+    "contactBDAY" : "2017-11-09",
+    "contactPHONES" : [ "+380508187856" ],
+    "contactADRESS" : "Днепр",
+    "contactMODIFYDT" : "2021-12-19T01:56:46.211"
+  }
+}
