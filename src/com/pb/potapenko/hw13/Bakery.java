@@ -3,9 +3,9 @@ package com.pb.potapenko.hw13;
 import java.util.ArrayList;
 
 /**
- * В маленькой пекарне есть только один лоток (tray) на traySize булочек, куда выкладываются булки по номеру номенклатуры от 1 до 10
- * Пекарь выпекает булочки
- * Покупатели покупают булочки
+ * В маленькой пекарне есть только один лоток (tray) на traySize булочек, куда пекарь выкладывает булки по номеру номенклатуры от 1 до 10.
+ * Пекарь выпекает булочки в количестве не более, чем количество свободных мест в лотке. Каждая операция добавляет минимум 1 булку в лоток.
+ * Покупатели покупают булочки в количестве не более, чем количество булочек в лотке. Каждая операция забирает из лотка минимум 1 булку.
  */
 public class Bakery {
 
@@ -43,13 +43,23 @@ public class Bakery {
     }
 
     /**
+     * Метод возвращает текущее количество элементов - булочек в лотке
+     * @param arrList - коллекция - лоток с булками
+     * @param size - максимальное количество мест в лотке
+     * @return
+     */
+    private static int getBunsCount(ArrayList arrList, int size) {
+        return (size - getNullElements(arrList, size));
+    }
+
+    /**
      * Метод информирует о текущем количестве булок в лотке
      * @param arrList - коллекция - лоток с булками
      * @param size - максимальное количество мест в лотке
      */
     private static void infoBunsCount(ArrayList arrList, int size) {
         System.out.println("------------------------------------------------------");
-        System.out.println("Текущее количество булок в лотке - " + (size - getNullElements(arrList, size)));
+        System.out.println("Текущее количество булок в лотке - " + getBunsCount(arrList, size));
         System.out.println("------------------------------------------------------");
     }
 
@@ -65,9 +75,9 @@ public class Bakery {
             for(int i = 0;i<bunsCnt;i++) {
                 int bunNum = getNum(10);
                 arrList.add(bunNum);
-                System.out.println("Положили в лоток булку № "+bunNum);
+                System.out.println("Положил в лоток булку № "+bunNum);
             }
-            System.out.println("Всего положили в лоток "+bunsCnt+" булок.");
+            infoBunsCount(arrList, size);
         }
         else {
             System.out.println("Лоток заполнен. Жду, пока покупатели купят немного булок.");
@@ -82,8 +92,7 @@ public class Bakery {
     private static synchronized void getBuns(ArrayList arrList, int size) {
         int notNullSize = size - getNullElements(arrList,size); // максимальное количество булок, которое можно забрать из лотка при текущем состоянии
         if(notNullSize>0) {
-            int bunsCnt = getNum(notNullSize); // рандомное число буок, которое хотим забрать из лотка, но не больше notNullSize
-            //System.out.println("Всего хотим забрать "+bunsCnt+" булок.");
+            int bunsCnt = getNum(notNullSize); // рандомное число булок, которое хотим забрать из лотка, но не больше notNullSize
 
             // Создаем массив булок, которые хотим забрать из лотка
             int[] miniTray = new int[bunsCnt];
@@ -93,10 +102,10 @@ public class Bakery {
 
             // Забираем булки из лотка
             for(int i : miniTray) {
-                System.out.println("Забрали из лотка булку № " + i);
+                System.out.println("Забрал из лотка булку № " + i);
                 arrList.remove(new Integer(i));
             }
-            System.out.println("Всего забрали из лотка "+bunsCnt+" булок.");
+            infoBunsCount(arrList, size);
         }
         else {
             System.out.println("Лоток пустой. Жду, пока пекарь выложит булки на лоток.");
@@ -106,23 +115,24 @@ public class Bakery {
     public static void main(String[] args) throws IllegalThreadStateException{
         int traySize = 5; // Максимальное количество мест в лотке
         ArrayList<Integer> tray = new ArrayList<Integer>(traySize); // лоток - коллекция с булками
+        int stepCount = 0;
 
         class ProducerThread extends Thread {
 
             private boolean isActive;
-            void disable(){
-                isActive=false;
-            }
 
             ProducerThread() {
-                isActive=true;
+                isActive = true;
+            }
+
+            void disable() {
+                isActive = false;
             }
 
             @Override
             public void run() {
                 while(isActive) {
                     try {
-                        infoBunsCount(tray,traySize);
                         setBuns(tray, traySize);
                         ProducerThread.sleep(2000);
                     }
@@ -131,24 +141,25 @@ public class Bakery {
                     }
                 }
             }
+
         }
 
         class ConsumerThread extends Thread {
 
             private boolean isActive;
-            void disable(){
-                isActive=false;
-            }
 
             ConsumerThread() {
-                isActive=true;
+                isActive = true;
+            }
+
+            void disable(){
+                isActive = false;
             }
 
             @Override
             public void run() {
                 while (isActive) {
                     try {
-                        infoBunsCount(tray,traySize);
                         getBuns(tray,traySize);
                         ConsumerThread.sleep(2000);
                     }
@@ -165,16 +176,26 @@ public class Bakery {
         try {
             producer.start();
             consumer.start();
-            producer.join();
-            consumer.join();
-            producer.disable();
-            consumer.disable();
+            stepCount++;
+
+            if(getBunsCount(tray, traySize)==0) {
+                System.out.println("Лоток пустой. Жду, пока пекарь выложит булки на лоток.");
+                producer.join();
+            }
+
+            if(getBunsCount(tray, traySize)==traySize) {
+                System.out.println("Лоток заполнен. Жду, пока покупатели купят немного булок.");
+                consumer.join();
+            }
+
+            if(stepCount>10) {
+                producer.disable();
+                consumer.disable();
+            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        //producer.disable();
-        //consumer.start();
-        //consumer.disable();
     }
 }
